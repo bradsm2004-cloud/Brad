@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Stopwatch</string>
+    <string name="set_start_time">Set start time</string>
+    <string name="start">Start</string>
+    <string name="pause">Pause</string>
+    <string name="resume">Resume</string>
+    <string name="reset">Reset</string>
+    <string name="lap">Lap</string>
+    <string name="split">Split</string>
+    <string name="total">Total</string>
+    <string name="empty_laps">Lap times will appear here</string>
+</resources>
