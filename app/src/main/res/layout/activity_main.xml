@@ -23,6 +23,19 @@
             android:textStyle="bold" />
 
         <TextView
+            android:id="@+id/shareButton"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:gravity="center"
+            android:paddingStart="12dp"
+            android:paddingEnd="12dp"
+            android:text="Share"
+            android:textColor="@color/accent"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+
+        <TextView
             android:id="@+id/setStartButton"
             android:layout_width="wrap_content"
             android:layout_height="48dp"

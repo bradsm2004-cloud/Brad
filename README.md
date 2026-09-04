@@ -13,6 +13,11 @@ A native Android stopwatch with a Samsung-inspired dark interface and an adjusta
 - Continues measuring accurately when the app is briefly in the background
 - Keeps the screen awake while the stopwatch is running
 - Preserves the timer and lap list across screen rotation
+- Shows an ongoing stopwatch on the lock screen and notification panel
+- Includes pause, resume, lap, and reset controls in the notification
+- Continues running when the app is removed from Recent apps
+- Restores the running stopwatch and saved laps after Android recreates the app
+- Shares all lap results and copies individual laps with a long press
 
 ## Build the APK
 
