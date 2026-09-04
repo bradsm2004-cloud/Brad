@@ -250,7 +250,7 @@ public class MainActivity extends Activity {
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(R.string.set_start_time)
-                .setView(content, dp(24), dp(4), dp(24), 0)
+                .setView(content)
                 .setNegativeButton("Cancel", null)
                 .setPositiveButton("Set time", (ignored, which) -> {
                     int h = boundedValue(hoursInput, 0, 99);
