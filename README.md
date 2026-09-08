@@ -7,31 +7,34 @@ A native Android stopwatch with a Samsung-inspired dark interface and an adjusta
 - Set the stopwatch's starting hours, minutes, seconds, and hundredths
 - Start, pause, resume, and reset
 - Record unlimited laps
+- See a live current-lap timer beneath the overall stopwatch time
 - View each lap's split and total time
-- Fastest lap in green and slowest lap in red
+- Fastest lap in blue and slowest lap in red
 - Accurate timing based on Android's monotonic clock
 - Continues measuring accurately when the app is briefly in the background
-- Keeps the screen awake while the stopwatch is running
+- Optional keep-screen-awake setting
+- Optional vibration confirmation when a lap is recorded
+- Confirmation before a reset can erase the session
 - Preserves the timer and lap list across screen rotation
 - Shows an ongoing stopwatch on the lock screen and notification panel
+- Requests Android's promoted Live Update stopwatch chip on supported phones
 - Includes pause, resume, lap, and reset controls in the notification
 - Continues running when the app is removed from Recent apps
 - Restores the running stopwatch and saved laps after Android recreates the app
-- Shares all lap results and copies individual laps with a long press
+- Shares or copies all lap results from the options menu and copies individual laps with a long press
+- Uses status-bar insets so the top controls remain easy to tap
 
-## Build the APK
+## Build the permanently signed APK with GitHub
 
-1. Open this folder in Android Studio.
-2. Let Android Studio finish the Gradle sync and install Android SDK 35 if prompted.
-3. Choose **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
-4. Android Studio will place the APK under `app/build/outputs/apk/debug/`.
+The repository must contain these four encrypted Actions secrets:
 
-The app supports Android 8.0 (API 26) and newer.
+- `ANDROID_KEYSTORE_BASE64`
+- `ANDROID_KEYSTORE_PASSWORD`
+- `ANDROID_KEY_ALIAS`
+- `ANDROID_KEY_PASSWORD`
 
-## Build online without installing Android Studio
+Never upload the private `.jks` signing key or its backup files to the repository.
 
-1. Create a free GitHub repository with `main` as its default branch.
-2. Upload the contents of this project to the repository.
-3. Open the repository's **Actions** tab and select **Build Stopwatch APK**.
-4. When the run finishes, open it and download **Custom-Start-Stopwatch-APK** from the Artifacts section.
-5. Unzip the downloaded artifact to get `app-debug.apk`.
+After uploading the project, open **Actions > Build Stopwatch APK**. A successful run produces the artifact **Custom-Start-Stopwatch-v3-Signed-APK**, which contains `app-release.apk`.
+
+The app supports Android 8.0 (API 26) and newer. Live Update promotion depends on the phone's Android/One UI version and notification settings; the standard lock-screen and notification-panel display remains available.

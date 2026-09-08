@@ -10,8 +10,11 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.SystemClock;
+import android.os.VibrationEffect;
+import android.os.Vibrator;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -36,6 +39,9 @@ public class StopwatchService extends Service {
     private static final String KEY_RUNNING = "running";
     private static final String KEY_ACTIVE = "active";
     private static final String KEY_LAPS = "laps";
+    private static final String SETTINGS_PREFS = "stopwatch_settings";
+    private static final String KEY_KEEP_SCREEN_AWAKE = "keepScreenAwake";
+    private static final String KEY_LAP_VIBRATION = "lapVibration";
     private static final String CHANNEL_ID = "stopwatch_running";
     private static final int NOTIFICATION_ID = 8201;
 
@@ -83,6 +89,7 @@ public class StopwatchService extends Service {
             long total = currentElapsed();
             long previous = laps.isEmpty() ? initialMs : laps.get(laps.size() - 1).total;
             laps.add(new Lap(total, Math.max(0L, total - previous)));
+            vibrateForLap();
         } else if (ACTION_RESET.equals(action)) {
             running = false;
             active = false;
@@ -159,6 +166,10 @@ public class StopwatchService extends Service {
                 .setColor(getColor(R.color.accent))
                 .setColorized(false);
 
+        Bundle liveUpdateExtras = new Bundle();
+        liveUpdateExtras.putBoolean("android.requestPromotedOngoing", running);
+        builder.addExtras(liveUpdateExtras);
+
         if (running) {
             builder.setWhen(System.currentTimeMillis() - elapsed)
                     .setUsesChronometer(true)
@@ -168,9 +179,28 @@ public class StopwatchService extends Service {
         } else {
             builder.setShowWhen(false)
                     .addAction(android.R.drawable.ic_media_play, "Resume", serviceIntent(ACTION_START, 13))
-                    .addAction(android.R.drawable.ic_menu_revert, "Reset", serviceIntent(ACTION_RESET, 14));
+                    .addAction(android.R.drawable.ic_menu_revert, "Reset", resetConfirmationIntent());
         }
         return builder.build();
+    }
+
+    private PendingIntent resetConfirmationIntent() {
+        Intent intent = new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                .putExtra(MainActivity.EXTRA_CONFIRM_RESET, true);
+        return PendingIntent.getActivity(
+                this, 14, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+    }
+
+    private void vibrateForLap() {
+        if (!isLapVibrationEnabled(this)) return;
+        Vibrator vibrator = (Vibrator) getSystemService(VIBRATOR_SERVICE);
+        if (vibrator == null || !vibrator.hasVibrator()) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(35L, VibrationEffect.DEFAULT_AMPLITUDE));
+        } else {
+            vibrator.vibrate(35L);
+        }
     }
 
     private PendingIntent serviceIntent(String action, int requestCode) {
@@ -233,6 +263,26 @@ public class StopwatchService extends Service {
         }
     }
 
+    public static boolean isKeepScreenAwakeEnabled(Context context) {
+        return context.getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE)
+                .getBoolean(KEY_KEEP_SCREEN_AWAKE, true);
+    }
+
+    public static void setKeepScreenAwakeEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE).edit()
+                .putBoolean(KEY_KEEP_SCREEN_AWAKE, enabled).apply();
+    }
+
+    public static boolean isLapVibrationEnabled(Context context) {
+        return context.getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE)
+                .getBoolean(KEY_LAP_VIBRATION, true);
+    }
+
+    public static void setLapVibrationEnabled(Context context, boolean enabled) {
+        context.getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE).edit()
+                .putBoolean(KEY_LAP_VIBRATION, enabled).apply();
+    }
+
     public static State readState(Context context) {
         SharedPreferences prefs = context.getSharedPreferences(PREFS, MODE_PRIVATE);
         State state = new State();
@@ -268,6 +318,18 @@ public class StopwatchService extends Service {
         return String.format(Locale.US, "%02d:%02d:%02d.%02d", hours, minutes, seconds, centis);
     }
 
+    public static String formatLapTime(long milliseconds) {
+        long safe = Math.max(0L, milliseconds);
+        long hours = safe / 3_600_000L;
+        long minutes = (safe / 60_000L) % 60L;
+        long seconds = (safe / 1_000L) % 60L;
+        long centis = (safe % 1_000L) / 10L;
+        if (hours > 0L) {
+            return String.format(Locale.US, "%02d:%02d:%02d.%02d", hours, minutes, seconds, centis);
+        }
+        return String.format(Locale.US, "%02d:%02d.%02d", minutes, seconds, centis);
+    }
+
     public static class State {
         public long initialMs;
         public long elapsedMs;
@@ -279,6 +341,11 @@ public class StopwatchService extends Service {
         public long currentElapsed() {
             if (!running) return elapsedMs;
             return elapsedMs + Math.max(0L, SystemClock.elapsedRealtime() - snapshotRealtime);
+        }
+
+        public long currentLapElapsed() {
+            long previous = laps.isEmpty() ? initialMs : laps.get(laps.size() - 1).total;
+            return Math.max(0L, currentElapsed() - previous);
         }
     }
 

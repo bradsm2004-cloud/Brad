@@ -26,6 +26,8 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.Menu;
+import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,11 +35,17 @@ import java.util.Locale;
 
 public class MainActivity extends Activity {
     private static final int NOTIFICATION_PERMISSION_REQUEST = 501;
+    public static final String EXTRA_CONFIRM_RESET = "confirmReset";
+    private static final int MENU_SHARE = 1;
+    private static final int MENU_COPY = 2;
+    private static final int MENU_KEEP_AWAKE = 3;
+    private static final int MENU_LAP_VIBRATION = 4;
 
     private TextView timeMain;
     private TextView timeCentis;
+    private TextView currentLapTime;
     private TextView setStartButton;
-    private TextView shareButton;
+    private TextView optionsButton;
     private TextView emptyLaps;
     private Button startButton;
     private Button resetButton;
@@ -53,7 +61,7 @@ public class MainActivity extends Activity {
         @Override
         public void run() {
             if (state != null && state.running) {
-                renderTime(state.currentElapsed());
+                renderTimes();
                 handler.postDelayed(this, 16L);
             }
         }
@@ -73,8 +81,9 @@ public class MainActivity extends Activity {
 
         timeMain = findViewById(R.id.timeMain);
         timeCentis = findViewById(R.id.timeCentis);
+        currentLapTime = findViewById(R.id.currentLapTime);
         setStartButton = findViewById(R.id.setStartButton);
-        shareButton = findViewById(R.id.shareButton);
+        optionsButton = findViewById(R.id.optionsButton);
         emptyLaps = findViewById(R.id.emptyLaps);
         startButton = findViewById(R.id.startButton);
         resetButton = findViewById(R.id.resetButton);
@@ -85,16 +94,23 @@ public class MainActivity extends Activity {
         lapList.setAdapter(lapAdapter);
 
         startButton.setOnClickListener(view -> toggleRunning());
-        resetButton.setOnClickListener(view -> sendServiceAction(StopwatchService.ACTION_RESET));
+        resetButton.setOnClickListener(view -> confirmReset());
         lapButton.setOnClickListener(view -> sendServiceAction(StopwatchService.ACTION_LAP));
         setStartButton.setOnClickListener(view -> showStartTimeDialog());
-        shareButton.setOnClickListener(view -> shareLaps());
-        shareButton.setOnLongClickListener(view -> {
-            copyAllLaps();
-            return true;
-        });
+        optionsButton.setOnClickListener(this::showOptionsMenu);
+
+        applySystemBarInsets();
 
         refreshFromService();
+        handleIntent(getIntent());
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        refreshFromService();
+        handleIntent(intent);
     }
 
     @Override
@@ -166,16 +182,17 @@ public class MainActivity extends Activity {
 
     private void refreshFromService() {
         state = StopwatchService.readState(this);
-        renderTime(state.currentElapsed());
+        renderTimes();
         lapAdapter.notifyDataSetChanged();
         refreshControls();
         refreshLapVisibility();
         handler.removeCallbacks(ticker);
-        if (state.running) {
+        if (state.running && StopwatchService.isKeepScreenAwakeEnabled(this)) {
             getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
             handler.post(ticker);
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            if (state.running) handler.post(ticker);
         }
     }
 
@@ -187,7 +204,6 @@ public class MainActivity extends Activity {
         lapButton.setEnabled(state.running);
         setStartButton.setEnabled(!state.active);
         setStartButton.setAlpha(state.active ? 0.35f : 1f);
-        shareButton.setVisibility(state.laps.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private void refreshLapVisibility() {
@@ -205,6 +221,78 @@ public class MainActivity extends Activity {
         timeMain.setText(String.format(Locale.US, "%02d:%02d:%02d", hours, minutes, seconds));
         timeCentis.setText(String.format(Locale.US, ".%02d", centis));
         timeMain.setContentDescription(hours + " hours, " + minutes + " minutes, " + seconds + " seconds");
+    }
+
+    private void renderTimes() {
+        if (state == null) return;
+        renderTime(state.currentElapsed());
+        long currentLap = state.currentLapElapsed();
+        currentLapTime.setText(StopwatchService.formatLapTime(currentLap));
+        currentLapTime.setContentDescription("Current lap " + StopwatchService.formatTime(currentLap));
+    }
+
+    private void applySystemBarInsets() {
+        View root = findViewById(R.id.rootLayout);
+        root.setOnApplyWindowInsetsListener((view, insets) -> {
+            int top = insets.getSystemWindowInsetTop() + dp(8);
+            int bottom = insets.getSystemWindowInsetBottom();
+            view.setPaddingRelative(dp(24), top, dp(24), bottom);
+            return insets;
+        });
+        root.requestApplyInsets();
+    }
+
+    private void handleIntent(Intent intent) {
+        if (intent != null && intent.getBooleanExtra(EXTRA_CONFIRM_RESET, false)) {
+            intent.removeExtra(EXTRA_CONFIRM_RESET);
+            confirmReset();
+        }
+    }
+
+    private void confirmReset() {
+        if (state == null || !state.active) return;
+        new AlertDialog.Builder(this)
+                .setTitle("Reset stopwatch?")
+                .setMessage("This will erase the current time and all recorded laps.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Reset", (dialog, which) -> sendServiceAction(StopwatchService.ACTION_RESET))
+                .show();
+    }
+
+    private void showOptionsMenu(View anchor) {
+        PopupMenu popup = new PopupMenu(this, anchor);
+        Menu menu = popup.getMenu();
+        menu.add(Menu.NONE, MENU_SHARE, Menu.NONE, "Share lap times")
+                .setEnabled(state != null && !state.laps.isEmpty());
+        menu.add(Menu.NONE, MENU_COPY, Menu.NONE, "Copy lap times")
+                .setEnabled(state != null && !state.laps.isEmpty());
+        menu.add(Menu.NONE, MENU_KEEP_AWAKE, Menu.NONE, "Keep screen awake")
+                .setCheckable(true)
+                .setChecked(StopwatchService.isKeepScreenAwakeEnabled(this));
+        menu.add(Menu.NONE, MENU_LAP_VIBRATION, Menu.NONE, "Vibrate when lap is recorded")
+                .setCheckable(true)
+                .setChecked(StopwatchService.isLapVibrationEnabled(this));
+        popup.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == MENU_SHARE) {
+                shareLaps();
+                return true;
+            }
+            if (item.getItemId() == MENU_COPY) {
+                copyAllLaps();
+                return true;
+            }
+            if (item.getItemId() == MENU_KEEP_AWAKE) {
+                StopwatchService.setKeepScreenAwakeEnabled(this, !item.isChecked());
+                refreshFromService();
+                return true;
+            }
+            if (item.getItemId() == MENU_LAP_VIBRATION) {
+                StopwatchService.setLapVibrationEnabled(this, !item.isChecked());
+                return true;
+            }
+            return false;
+        });
+        popup.show();
     }
 
     private void showStartTimeDialog() {

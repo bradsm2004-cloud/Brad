@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
@@ -23,19 +24,6 @@
             android:textStyle="bold" />
 
         <TextView
-            android:id="@+id/shareButton"
-            android:layout_width="wrap_content"
-            android:layout_height="48dp"
-            android:gravity="center"
-            android:paddingStart="12dp"
-            android:paddingEnd="12dp"
-            android:text="Share"
-            android:textColor="@color/accent"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:visibility="gone" />
-
-        <TextView
             android:id="@+id/setStartButton"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
@@ -45,6 +33,16 @@
             android:textColor="@color/accent"
             android:textSize="15sp"
             android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/optionsButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:contentDescription="Options"
+            android:gravity="center"
+            android:text="⋮"
+            android:textColor="@color/text_primary"
+            android:textSize="28sp" />
     </LinearLayout>
 
     <LinearLayout
@@ -52,33 +50,51 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:gravity="center"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:paddingTop="28dp"
         android:paddingBottom="20dp">
 
-        <TextView
-            android:id="@+id/timeMain"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:fontFamily="sans-serif-thin"
             android:gravity="center"
-            android:includeFontPadding="false"
-            android:letterSpacing="-0.035"
-            android:text="00:00:00"
-            android:textColor="@color/text_primary"
-            android:textSize="52sp" />
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/timeMain"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-thin"
+                android:gravity="center"
+                android:includeFontPadding="false"
+                android:letterSpacing="-0.035"
+                android:text="00:00:00"
+                android:textColor="@color/text_primary"
+                android:textSize="52sp" />
+
+            <TextView
+                android:id="@+id/timeCentis"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:fontFamily="sans-serif-light"
+                android:includeFontPadding="false"
+                android:paddingStart="4dp"
+                android:text=".00"
+                android:textColor="@color/accent"
+                android:textSize="25sp" />
+        </LinearLayout>
 
         <TextView
-            android:id="@+id/timeCentis"
+            android:id="@+id/currentLapTime"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:fontFamily="sans-serif-light"
+            android:layout_marginTop="10dp"
+            android:fontFamily="sans-serif"
             android:includeFontPadding="false"
-            android:paddingStart="4dp"
-            android:text=".00"
-            android:textColor="@color/accent"
-            android:textSize="25sp" />
+            android:text="00:00.00"
+            android:textColor="@color/text_muted"
+            android:textSize="22sp" />
     </LinearLayout>
 
     <LinearLayout
